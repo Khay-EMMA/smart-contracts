@@ -69,7 +69,7 @@ contract('Testing protected wallet contracts', function (accounts) {
   describe("Testing wallet factory resolver", async () => {
     
     it("Testing wallet factory deployment", async () => {
-      instances.ProtectedWalletFactory = await ProtectedWalletFactory.new(instances.Snowflake.address);
+      instances.ProtectedWalletFactory = await ProtectedWalletFactory.new(instances.Snowflake.address, instances.ClientRaindrop.address);
     })
 
     it('Testing wallet creation on addition', async () => {
@@ -142,10 +142,8 @@ contract('Testing protected wallet contracts', function (accounts) {
     })
 
     it("Makes a substantial deposit and attempts to withdraw over daily limit", async () => {
-      const initial = await wallet.getHydroBalance()
       const amount = web3.utils.toBN(200).mul(web3.utils.toBN(1e18))
       await wallet.depositFromSnowflake(amount, { from: user.address })
-      const final = await wallet.getHydroBalance()
     })
 
     it("Withdrawals exceeding limit throw", async () => {
@@ -189,7 +187,7 @@ contract('Testing protected wallet contracts', function (accounts) {
     it("Can create a new protected wallet after reocovery phase", async () => {
       await instances.ProtectedWalletFactory.generateNewWallet(1, web3.utils.soliditySha3("test"), { from: user.address })
       const newWallet = await instances.ProtectedWalletFactory.getWalletByEIN(1)
-      console.log(newWallet)
+      assert.isOk(newWallet)
     })
 
   })

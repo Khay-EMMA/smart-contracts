@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./interfaces/ProtectedWalletFactoryInterface.sol";
 import "./interfaces/SnowflakeInterface.sol";
+import "./interfaces/ClientRaindropInterface.sol";
 import "./interfaces/IdentityRegistryInterface.sol";
 import "./SnowflakeResolver.sol";
 import "./interfaces/HydroInterface.sol";
@@ -27,6 +28,7 @@ contract ProtectedWallet is SnowflakeResolver {
 
     uint private    ein;
     string private  hydroId;
+    address private hydroIdAddr;
     uint private    dailyLimit;
     uint private    hydroBalance;
     bool private    hasPassword;
@@ -39,6 +41,7 @@ contract ProtectedWallet is SnowflakeResolver {
 
     ProtectedWalletFactoryInterface factoryContract;
     IdentityRegistryInterface       idRegistry;
+    ClientRaindropInterface         clientRaindrop;
     SnowflakeInterface              snowflake;
     HydroInterface                  hydro;
 
@@ -50,12 +53,14 @@ contract ProtectedWallet is SnowflakeResolver {
 
     // Constructor Logic
 
-    constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, bytes32 passHash) 
+    constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, bytes32 passHash, address clientRaindropAddr) 
     public 
     SnowflakeResolver("Your personal protected wallet", "Protect your funds without locking them up in cold storage", snowflakeAddress, true, true) 
     {
         ein = _ein;
         dailyLimit = _dailyLimit;
+        clientRaindrop = ClientRaindropInterface(clientRaindropAddr);
+        (hydroIdAddr, hydroId) = clientRaindrop.getDetails(ein);
         resolverAdded = false;
         timestamp = now;
         oneTimePass = keccak256(abi.encodePacked(address(this), passHash));

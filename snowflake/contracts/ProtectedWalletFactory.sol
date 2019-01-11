@@ -32,6 +32,7 @@ contract ProtectedWalletFactory is SnowflakeResolver {
     
     IdentityRegistryInterface idRegistry;
     SnowflakeInterface        snowflake;
+    ClientRaindropInterface   clientRaindrop;
 
     mapping (uint => address) private einToWallet;
     mapping (uint => bool) private    einHasDeleted;
@@ -46,9 +47,10 @@ contract ProtectedWalletFactory is SnowflakeResolver {
     }
 
 
-    constructor(address snowflakeAddress) 
+    constructor(address snowflakeAddress, address clientRaindropAddr) 
     SnowflakeResolver("Protected wallet factory", "Generate your unique protected wallet", snowflakeAddress, true, true)
     public {
+        setClientRaindropAddress(clientRaindropAddr);
         setSnowflakeAddress(snowflakeAddress);
     }
 
@@ -64,6 +66,10 @@ contract ProtectedWalletFactory is SnowflakeResolver {
             einToWallet[ein] = wallet;
             return true;
         }
+    }
+
+    function setClientRaindropAddress(address clientRaindropAddr) public onlyOwner() {
+        clientRaindrop = ClientRaindropInterface(clientRaindropAddr);
     }
 
     function setSnowflakeAddress(address _snowflakeAddress) public onlyOwner() {
@@ -95,7 +101,7 @@ contract ProtectedWalletFactory is SnowflakeResolver {
     } 
 
     function generateWalletPassword(uint ein, bytes32 passHash) internal returns (address) {
-        ProtectedWallet protectedWallet = new ProtectedWallet(ein, standardDailyLimit, snowflakeAddress, passHash);
+        ProtectedWallet protectedWallet = new ProtectedWallet(ein, standardDailyLimit, snowflakeAddress, passHash, address(clientRaindrop));
         return address(protectedWallet);
     }
 
