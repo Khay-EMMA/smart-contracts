@@ -11,7 +11,7 @@ async function initialize (owner, users) {
   for (let i = 0; i < users.length; i++) {
     await instances.HydroToken.transfer(
       users[i].address,
-      web3.utils.toBN(1000).mul(web3.utils.toBN(1e18)),
+      web3.utils.toBN(10000).mul(web3.utils.toBN(1e18)),
       { from: owner }
     )
   }
@@ -32,6 +32,20 @@ async function initialize (owner, users) {
   return instances
 }
 
+function timeTravel (seconds) {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.send({
+      jsonrpc: '2.0',
+      method: 'evm_increaseTime',
+      params: [seconds],
+      id: new Date().getTime()
+    }, (err, result) => {
+      if (err) return reject(err)
+      return resolve(result)
+    })
+  })
+}
 module.exports = {
-  initialize: initialize
+  initialize: initialize,
+  timeTravel: timeTravel
 }
