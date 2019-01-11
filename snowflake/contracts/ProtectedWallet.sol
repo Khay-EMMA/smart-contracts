@@ -197,11 +197,6 @@ contract ProtectedWallet is SnowflakeResolver {
         revert();
     }
 
-    function fastForward() public returns (uint) {
-        timestamp = timestamp.sub(2 days);
-        return timestamp;
-    }
-
     function revealAndRecover(bytes32 _hash, address payable _dest, string memory password) public {
         require(passHashCommit[_hash] == true, "Must provide commit hash before reveal phase");
         require(keccak256(abi.encodePacked(_dest, password)) == _hash, "Hashed input values not equal to commit hash");

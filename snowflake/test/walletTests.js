@@ -187,7 +187,9 @@ contract('Testing protected wallet contracts', function (accounts) {
     })
 
     it("Can create a new protected wallet after reocovery phase", async () => {
-
+      await instances.ProtectedWalletFactory.generateNewWallet(1, web3.utils.soliditySha3("test"), { from: user.address })
+      const newWallet = await instances.ProtectedWalletFactory.getWalletByEIN(1)
+      console.log(newWallet)
     })
 
   })
