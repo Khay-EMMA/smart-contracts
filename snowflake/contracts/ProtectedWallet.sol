@@ -126,7 +126,7 @@ contract ProtectedWallet is SnowflakeResolver {
         return oneTimePass;
     }
 
-    function getIsPasswordProtected() public view returns (bool) {
+    function getHasPassword() public view returns (bool) {
         return hasPassword;
     }
 
@@ -225,5 +225,5 @@ contract ProtectedWallet is SnowflakeResolver {
         passHashCommit[_hash] = true;
         emit CommitHash(msg.sender, _hash);
     }
-
+    
 }

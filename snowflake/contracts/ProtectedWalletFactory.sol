@@ -133,6 +133,5 @@ contract ProtectedWalletFactory is SnowflakeResolver {
         }
         return out;
     }
-
-
+    
 }
