@@ -1,6 +1,6 @@
-pragma solidity 0.4.24;
+pragma solidity 0.5.0;
 
-import "solidity-cborutils/contracts/CBOR.sol";
+import "./solidity-cborutils/CBOR.sol";
 
 library ChainlinkLib {
   uint256 internal constant defaultBufferSize = 256;
@@ -29,35 +29,35 @@ library ChainlinkLib {
     return self;
   }
 
-  function add(Run memory self, string _key, string _value)
+  function add(Run memory self, string memory _key, string memory _value)
     internal pure
   {
     self.buf.encodeString(_key);
     self.buf.encodeString(_value);
   }
 
-  function addBytes(Run memory self, string _key, bytes _value)
+  function addBytes(Run memory self, string memory _key, bytes memory _value)
     internal pure
   {
     self.buf.encodeString(_key);
     self.buf.encodeBytes(_value);
   }
 
-  function addInt(Run memory self, string _key, int256 _value)
+  function addInt(Run memory self, string memory _key, int256 _value)
     internal pure
   {
     self.buf.encodeString(_key);
     self.buf.encodeInt(_value);
   }
 
-  function addUint(Run memory self, string _key, uint256 _value)
+  function addUint(Run memory self, string memory _key, uint256 _value)
     internal pure
   {
     self.buf.encodeString(_key);
     self.buf.encodeUInt(_value);
   }
 
-  function addStringArray(Run memory self, string _key, string[] memory _values)
+  function addStringArray(Run memory self, string memory _key, string[] memory _values)
     internal pure
   {
     self.buf.encodeString(_key);

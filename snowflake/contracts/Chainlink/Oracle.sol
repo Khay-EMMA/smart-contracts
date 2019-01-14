@@ -1,7 +1,7 @@
-pragma solidity 0.4.24;
+pragma solidity 0.5.0;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "../zeppelin/ownership/Ownable.sol";
+import "../zeppelin/math/SafeMath.sol";
 import "./interfaces/ChainlinkRequestInterface.sol";
 import "./interfaces/OracleInterface.sol";
 import "./interfaces/LinkTokenInterface.sol";
@@ -51,7 +51,7 @@ contract Oracle is ChainlinkRequestInterface, OracleInterface, Ownable {
   function onTokenTransfer(
     address _sender,
     uint256 _amount,
-    bytes _data
+    bytes memory _data
   )
     public
     onlyLINK
@@ -65,7 +65,9 @@ contract Oracle is ChainlinkRequestInterface, OracleInterface, Ownable {
       mstore(add(_data, 68), _amount)    // ensure correct amount is passed
     }
     // solium-disable-next-line security/no-low-level-calls
-    require(address(this).delegatecall(_data), "Unable to create request"); // calls requestData
+    (bool result,) = address(this).delegatecall(_data);
+    require(result, "Unable to create request");
+     // calls requestData
   }
 
   function requestData(
@@ -76,7 +78,7 @@ contract Oracle is ChainlinkRequestInterface, OracleInterface, Ownable {
     address _callbackAddress,
     bytes4 _callbackFunctionId,
     uint256 _nonce,
-    bytes _data
+    bytes calldata _data
   )
     external
     onlyLINK
@@ -115,7 +117,8 @@ contract Oracle is ChainlinkRequestInterface, OracleInterface, Ownable {
     // All updates to the oracle's fulfillment should come before calling the
     // callback(addr+functionId) as it is untrusted.
     // See: https://solidity.readthedocs.io/en/develop/security-considerations.html#use-the-checks-effects-interactions-pattern
-    return callback.addr.call(callback.functionId, requestId, _data); // solium-disable-line security/no-low-level-calls
+    (bool response, ) = callback.addr.call(abi.encodePacked(callback.functionId, requestId, _data));
+    return response; // solium-disable-line security/no-low-level-calls
   }
 
   function getAuthorizationStatus(address _node) external view returns (bool) {
@@ -163,7 +166,7 @@ contract Oracle is ChainlinkRequestInterface, OracleInterface, Ownable {
   }
 
   modifier onlyAuthorizedNode() {
-    require(authorizedNodes[msg.sender] || msg.sender == owner, "Not an authorized node to fulfill requests");
+    require(authorizedNodes[msg.sender] || msg.sender == owner(), "Not an authorized node to fulfill requests");
     _;
   }
 
@@ -172,7 +175,7 @@ contract Oracle is ChainlinkRequestInterface, OracleInterface, Ownable {
     _;
   }
 
-  modifier permittedFunctionsForLINK(bytes _data) {
+  modifier permittedFunctionsForLINK(bytes memory _data) {
     bytes4 funcSelector;
     assembly {
       // solium-disable-next-line security/no-low-level-calls
@@ -187,7 +190,7 @@ contract Oracle is ChainlinkRequestInterface, OracleInterface, Ownable {
     _;
   }
 
-  modifier validRequestLength(bytes _data) {
+  modifier validRequestLength(bytes memory _data) {
     require(_data.length >= MINIMUM_REQUEST_LENGTH, "Cannot callback to LINK");
     _;
   }

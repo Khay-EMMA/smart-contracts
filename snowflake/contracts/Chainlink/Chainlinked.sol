@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity 0.5.0;
 
 import "./ChainlinkLib.sol";
 import "./ENSResolver.sol";
@@ -40,7 +40,7 @@ contract Chainlinked {
         internal
         returns (bytes32)
     {
-        return chainlinkRequestFrom(oracle, _run, _amount);
+        return chainlinkRequestFrom(address(oracle), _run, _amount);
     }
 
     function chainlinkRequestFrom(address _oracle, ChainlinkLib.Run memory _run, uint256 _amount)
@@ -107,7 +107,7 @@ contract Chainlinked {
         ENSResolver resolver = ENSResolver(ens.resolver(ensNode));
         bytes32 linkSubnode = keccak256(abi.encodePacked(ensNode, ENS_TOKEN_SUBNAME));
         setLinkToken(resolver.addr(linkSubnode));
-        return (link, updateOracleWithENS());
+        return (address(link), updateOracleWithENS());
     }
 
     function updateOracleWithENS()
@@ -117,7 +117,7 @@ contract Chainlinked {
         ENSResolver resolver = ENSResolver(ens.resolver(ensNode));
         bytes32 oracleSubnode = keccak256(abi.encodePacked(ensNode, ENS_ORACLE_SUBNAME));
         setOracle(resolver.addr(oracleSubnode));
-        return oracle;
+        return address(oracle);
     }
 
     function encodeRequest(ChainlinkLib.Run memory _run)

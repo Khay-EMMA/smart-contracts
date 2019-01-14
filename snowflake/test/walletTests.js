@@ -105,9 +105,7 @@ contract('Testing protected wallet contracts', function (accounts) {
 
     it("Testing for correct password initialization", async () => {
       const expectedHash = web3.utils.soliditySha3(wallet.address, web3.utils.soliditySha3("hehe"))
-      const hasPassword = await wallet.getIsPasswordProtected()
       const storedHash = await wallet.getOneTimePassHash();
-      assert.isTrue(hasPassword)
       assert.isTrue(expectedHash == storedHash)
     })
 

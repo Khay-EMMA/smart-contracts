@@ -36,6 +36,8 @@ contract ProtectedWalletFactory is SnowflakeResolver {
 
     mapping (uint => address) private einToWallet;
     mapping (uint => bool) private    einHasDeleted;
+    mapping (address => bool) private isHydroIdAddress;
+    mapping (uint => string) private  einToHydroId;
 
     uint signUpFee =          1 ether;
     uint standardDailyLimit = 100 ether;
@@ -55,6 +57,9 @@ contract ProtectedWalletFactory is SnowflakeResolver {
     }
 
     function onAddition(uint ein, uint, bytes memory extraData) public senderIsSnowflake() returns (bool) {
+        (address hydroAddr, string memory hydroId) = clientRaindrop.getDetails(ein);
+        isHydroIdAddress[hydroAddr] = true;
+        einToHydroId[ein] = hydroId;
         if (extraData.length == 32) {
             bytes32 passHash = bytesToBytes32(extraData);
             address wallet = generateWalletPassword(ein, passHash);
@@ -86,7 +91,7 @@ contract ProtectedWalletFactory is SnowflakeResolver {
     // one or more wallets
     function generateNewWallet(uint ein, bytes memory _passHash) public returns (address) {
         require(ein == idRegistry.getEIN(msg.sender), "Only an associated address can generate a new wallet");
-        require(einHasDeleted[ein] == true, "Ein must have deleted their previous wallet");
+        require(einHasDeleted[ein] == true, "Ein must have deleted the previous wallet");
         if (_passHash.length == 32) {
             bytes32 passHash = bytesToBytes32(_passHash);
             address wallet = generateWalletPassword(ein, passHash);
@@ -133,5 +138,5 @@ contract ProtectedWalletFactory is SnowflakeResolver {
         }
         return out;
     }
-    
+
 }

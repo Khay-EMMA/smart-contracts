@@ -1,6 +1,6 @@
-pragma solidity 0.4.24;
+pragma solidity 0.5.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "../zeppelin/math/SafeMath.sol";
 import "./interfaces/ChainlinkRequestInterface.sol";
 import "./interfaces/CoordinatorInterface.sol";
 import "./interfaces/LinkTokenInterface.sol";
@@ -54,7 +54,7 @@ contract Coordinator is ChainlinkRequestInterface, CoordinatorInterface {
   function onTokenTransfer(
     address _sender,
     uint256 _amount,
-    bytes _data
+    bytes memory _data
   )
     public
     onlyLINK
@@ -67,7 +67,8 @@ contract Coordinator is ChainlinkRequestInterface, CoordinatorInterface {
       mstore(add(_data, 68), _amount)    // ensure correct amount is passed
     }
     // solium-disable-next-line security/no-low-level-calls
-    require(address(this).delegatecall(_data), "Unable to create request"); // calls requestData
+    (bool result,) = address(this).delegatecall(_data); // calls requestData
+    require(result, "Unable to create request");
   }
 
   function requestData(
@@ -78,7 +79,7 @@ contract Coordinator is ChainlinkRequestInterface, CoordinatorInterface {
     address _callbackAddress,
     bytes4 _callbackFunctionId,
     uint256 _nonce,
-    bytes _data
+    bytes calldata _data
   )
     external
     onlyLINK
@@ -107,12 +108,12 @@ contract Coordinator is ChainlinkRequestInterface, CoordinatorInterface {
     uint256 _payment,
     uint256 _expiration,
     uint256 _endAt,
-    address[] _oracles,
+    address[] memory _oracles,
     bytes32 _requestDigest
   )
     public
     pure
-    returns (bytes)
+    returns (bytes memory)
   {
     return abi.encodePacked(_payment, _expiration, _endAt, _oracles, _requestDigest);
   }
@@ -121,7 +122,7 @@ contract Coordinator is ChainlinkRequestInterface, CoordinatorInterface {
     uint256 _payment,
     uint256 _expiration,
     uint256 _endAt,
-    address[] _oracles,
+    address[] memory _oracles,
     bytes32 _requestDigest
   )
     public pure returns (bytes32)
@@ -133,10 +134,10 @@ contract Coordinator is ChainlinkRequestInterface, CoordinatorInterface {
     uint256 _payment,
     uint256 _expiration,
     uint256 _endAt,
-    address[] _oracles,
-    uint8[] _vs,
-    bytes32[] _rs,
-    bytes32[] _ss,
+    address[] calldata _oracles,
+    uint8[] calldata _vs,
+    bytes32[] calldata _rs,
+    bytes32[] calldata _ss,
     bytes32 _requestDigest
   )
     external
@@ -162,10 +163,10 @@ contract Coordinator is ChainlinkRequestInterface, CoordinatorInterface {
 
   function verifyOracleSignatures(
     bytes32 _serviceAgreementID,
-    address[] _oracles,
-    uint8[] _vs,
-    bytes32[] _rs,
-    bytes32[] _ss
+    address[] memory _oracles,
+    uint8[] memory _vs,
+    bytes32[] memory _rs,
+    bytes32[] memory _ss
   )
     private pure
   {
@@ -227,7 +228,8 @@ contract Coordinator is ChainlinkRequestInterface, CoordinatorInterface {
     // All updates to the oracle's fulfillment should come before calling the
     // callback(addr+functionId) as it is untrusted. See:
     // https://solidity.readthedocs.io/en/develop/security-considerations.html#use-the-checks-effects-interactions-pattern
-    return callback.addr.call(callback.functionId, _requestId, _data); // solium-disable-line security/no-low-level-calls
+    (bool response,) = callback.addr.call(abi.encodePacked(callback.functionId, _requestId, _data));
+    return response; // solium-disable-line security/no-low-level-calls
   }
 
   // Necessary to implement ChainlinkRequestInterface

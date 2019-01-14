@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity 0.5.0;
 
 interface OracleInterface {
   function fulfillData(uint256 requestId, bytes32 data) external returns (bool);

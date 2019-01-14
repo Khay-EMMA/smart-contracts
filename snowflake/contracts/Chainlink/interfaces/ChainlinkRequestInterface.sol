@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity 0.5.0;
 
 interface ChainlinkRequestInterface {
   function cancel(bytes32 requestId) external;
@@ -10,6 +10,6 @@ interface ChainlinkRequestInterface {
     address callbackAddress,
     bytes4 callbackFunctionId,
     uint256 nonce,
-    bytes data
+    bytes calldata data
   ) external;
 }
