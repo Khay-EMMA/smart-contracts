@@ -7,6 +7,7 @@ import "./interfaces/IdentityRegistryInterface.sol";
 import "./SnowflakeResolver.sol";
 import "./interfaces/HydroInterface.sol";
 import "./zeppelin/math/SafeMath.sol";
+import "./Chainlink/Chainlinked.sol";
 
 /**
  * Protected wallet Implementation
@@ -23,7 +24,7 @@ import "./zeppelin/math/SafeMath.sol";
  * daily limit is 10 hydro tokens)
  */
 
-contract ProtectedWallet is SnowflakeResolver {
+contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     using SafeMath for uint;
 
     uint private    ein;
@@ -51,12 +52,24 @@ contract ProtectedWallet is SnowflakeResolver {
     event WithdrawToSnowflake(uint indexed _ein, uint indexed _amount);
     event WithdrawToAddress(address indexed _to, uint indexed _amount);
 
+    //Chainlink constants
+
+    bytes32 constant GET_BYTES32_JOB = bytes32("ccc41cccdce8492398ac2d5558debf55");
+    bytes32 constant POST_BYTES32_JOB = bytes32("954572881f024f89bc230e572dc5d8ea");
+    bytes32 constant INT256_JOB = bytes32("796add02d7b44142b42e675e21ab0ad0");
+    bytes32 constant INT256_MUL_JOB = bytes32("913f3f4e8aca42498d6741dfe9cb8cf2");
+    bytes32 constant UINT256_JOB = bytes32("82d69822e1094857b8416053d0b032bb");
+    bytes32 constant UINT256_MUL_JOB = bytes32("73fda4e2b40d48f3b22d4f839cd5691b");
+    bytes32 constant HYDRO_JOB = bytes32("278c97ffadb54a5bbb93cfec5f7b5503");
+
     // Constructor Logic
 
     constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, bytes32 passHash, address clientRaindropAddr) 
     public 
     SnowflakeResolver("Your personal protected wallet", "Protect your funds without locking them up in cold storage", snowflakeAddress, true, true) 
     {
+        setLinkToken(0x01BE23585060835E02B77ef475b0Cc51aA1e0709);
+        setOracle(0xa8DC9e5D99DF8790D700C885e5124573fA1720a3);
         ein = _ein;
         dailyLimit = _dailyLimit;
         clientRaindrop = ClientRaindropInterface(clientRaindropAddr);
@@ -190,14 +203,27 @@ contract ProtectedWallet is SnowflakeResolver {
     }
 
     // Use chainlink2FA to adjust daily limit
-    function changeDailyLimit() public {
-        //TODO
+    function requestChangeDailyLimit(string memory code) public {
+        require(bytes(code).length == 6);
+        ChainlinkLib.Run memory run = newRun(HYDRO_JOB, address(this), this.fulfillChangeDailyLimit.selector);
     }
 
-    function recoverWithChainlink() public {
+    function requestRecoverWithChainlink() public {
         //TODO
     }
- 
+    
+    function fulfillChangeDailyLimit(bytes32 _requestId, bool _response) 
+        public checkChainlinkFulfillment(_requestId) 
+    {  
+        require(_response == true, "Could not fulfill change daily limit request");
+    }
+
+    function fulfillRecoverWithChainlink(bytes32 _requestId, bool _response)
+        public checkChainlinkFulfillment(_requestId) 
+    {
+        require(_response == true, "Could not fulfill chainlink recovery request");
+    }
+
     function() external payable {
         revert();
     }

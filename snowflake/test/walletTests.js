@@ -186,6 +186,7 @@ contract('Testing protected wallet contracts', function (accounts) {
       await instances.ProtectedWalletFactory.generateNewWallet(1, web3.utils.soliditySha3("test"), { from: user.address })
       const newWallet = await instances.ProtectedWalletFactory.getWalletByEIN(1)
       assert.isOk(newWallet)
+      console.log(web3.utils.toBN(10e15).mul(web3.utils.toBN(10e15)))
     })
 
   })

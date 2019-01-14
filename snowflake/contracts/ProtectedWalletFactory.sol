@@ -48,7 +48,6 @@ contract ProtectedWalletFactory is SnowflakeResolver {
         _;
     }
 
-
     constructor(address snowflakeAddress, address clientRaindropAddr) 
     SnowflakeResolver("Protected wallet factory", "Generate your unique protected wallet", snowflakeAddress, true, true)
     public {
