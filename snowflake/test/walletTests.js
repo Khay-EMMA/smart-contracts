@@ -3,6 +3,7 @@ const { sign, verifyIdentity } = require('./utilities');
 
 const ProtectedWalletFactory = artifacts.require('./ProtectedWalletFactory.sol');
 const ProtectedWallet = artifacts.require('./ProtectedWallet.sol');
+const Oracle = artifacts.require('./Chainlink/Oracle.sol');
 
 let instances
 let user
@@ -96,6 +97,11 @@ contract('Testing protected wallet contracts', function (accounts) {
       const expectedDailyLimit = web3.utils.toBN(100).mul(web3.utils.toBN(1e18));
       const contractLimit = await wallet.getDailyLimit()
       assert.isTrue(contractLimit.eq(expectedDailyLimit))
+    })
+
+    it("Deploy oracle contract", async () => {
+      instances.Oracle = await Oracle.new()
+      console.log(instances.Oracle.address)
     })
     
     it("Testing wallet resolver on addition function", async () => {
