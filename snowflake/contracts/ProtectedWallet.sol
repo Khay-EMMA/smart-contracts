@@ -65,14 +65,11 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     event WithdrawToAddress(address indexed _to, uint indexed _amount);
 
     // Chainlink job identifiers
-    bytes32 LIMIT_JOB;
-    bytes32 RECOVER_JOB;
-    bytes32 ONETIME_WITHDRAW_JOB;
-    bytes32 ONETIME_TRANSFEREXT_JOB;
-    bytes32 ONETIME_WITHDRAWEXT_JOB;
-
-
-    // Constructor Logic
+    bytes32 constant LIMIT_JOB =                bytes32("5bf96634ddb9498e948b2674be599060");
+    bytes32 constant RECOVER_JOB =              bytes32("43b41acaa7cc43dfacab4ac701dc7173");
+    bytes32 constant ONETIME_WITHDRAW_JOB =     bytes32("1b1ac6af395f41bb982f856f10b0ce32");
+    bytes32 constant ONETIME_TRANSFEREXT_JOB =  bytes32("a354053ad6d54b739369b86f6c057275");
+    bytes32 constant ONETIME_WITHDRAWEXT_JOB =  bytes32("20c9ea65c1084740a88189225d7dee17");
 
     constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, bytes32 passHash, address clientRaindropAddr) 
     public 
@@ -356,6 +353,19 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
             oneTimeWithdrawalExtAmount = 0;
             return false;
         }
+    }
+
+    function resetChainlinkState() public {
+        require(idRegistry.getEIN(msg.sender) == ein, "Only the protected wallet associated ein can invoke this function");
+        require(now > timeOfLast2FA + 1 hours, "Can only invoke this function at least one hour after the last chainlink request");
+        
+        pendingRecovery = false;
+        pendingDailyLimit = 0;
+        oneTimeWithdrawalAmount = 0;
+        oneTimeTransferExtAmount = 0;
+        oneTimeTransferExtAddress = address(0);
+        oneTimeWithdrawalExtAmount = 0;
+        oneTimeWithdrawalExtEin = 0;
     }
 
     function() external payable {
