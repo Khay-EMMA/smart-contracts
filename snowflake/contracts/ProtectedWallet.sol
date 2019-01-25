@@ -65,7 +65,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     event WithdrawToAddress(address indexed _to, uint indexed _amount);
 
     // Chainlink job identifiers
-    bytes32 constant LIMIT_JOB =                bytes32("5bf96634ddb9498e948b2674be599060");
+    bytes32 constant LIMIT_JOB =                bytes32("d53bdaec52e4436e9e730acf8b64703d");
     bytes32 constant RECOVER_JOB =              bytes32("43b41acaa7cc43dfacab4ac701dc7173");
     bytes32 constant ONETIME_WITHDRAW_JOB =     bytes32("1b1ac6af395f41bb982f856f10b0ce32");
     bytes32 constant ONETIME_TRANSFEREXT_JOB =  bytes32("a354053ad6d54b739369b86f6c057275");
@@ -76,7 +76,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     SnowflakeResolver("Your personal protected wallet", "Protect your funds without locking them up in cold storage", snowflakeAddress, true, true) 
     {
         setLinkToken(0x01BE23585060835E02B77ef475b0Cc51aA1e0709);
-        setOracle(0xa8DC9e5D99DF8790D700C885e5124573fA1720a3);
+        setOracle(0xA5e4D80F7FB2cd2dB23DB79A7337f223C67DaD22);
         ein = _ein;
         dailyLimit = _dailyLimit;
         clientRaindrop = ClientRaindropInterface(clientRaindropAddr);
@@ -357,7 +357,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
 
     function resetChainlinkState() public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only the protected wallet associated ein can invoke this function");
-        require(now > timeOfLast2FA + 1 hours, "Can only invoke this function at least one hour after the last chainlink request");
+        //require(now > timeOfLast2FA + 1 hours, "Can only invoke this function at least one hour after the last chainlink request");
         
         pendingRecovery = false;
         pendingDailyLimit = 0;
