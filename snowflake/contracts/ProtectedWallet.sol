@@ -66,10 +66,10 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
 
     // Chainlink job identifiers
     bytes32 constant LIMIT_JOB =                bytes32("d53bdaec52e4436e9e730acf8b64703d");
-    bytes32 constant RECOVER_JOB =              bytes32("43b41acaa7cc43dfacab4ac701dc7173");
-    bytes32 constant ONETIME_WITHDRAW_JOB =     bytes32("1b1ac6af395f41bb982f856f10b0ce32");
-    bytes32 constant ONETIME_TRANSFEREXT_JOB =  bytes32("a354053ad6d54b739369b86f6c057275");
-    bytes32 constant ONETIME_WITHDRAWEXT_JOB =  bytes32("20c9ea65c1084740a88189225d7dee17");
+    bytes32 constant RECOVER_JOB =              bytes32("bd09b003710a494a855d233c30837345");
+    bytes32 constant ONETIME_WITHDRAW_JOB =     bytes32("7d01cb0e33044d3695d1734032d970e2");
+    bytes32 constant ONETIME_TRANSFEREXT_JOB =  bytes32("e24d7b3b279046a7b310579703918f58");
+    bytes32 constant ONETIME_WITHDRAWEXT_JOB =  bytes32("73ae93813c174b4a8db3068096f5d23a");
 
     constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, bytes32 passHash, address clientRaindropAddr) 
     public 
@@ -206,7 +206,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     function requestChangeDailyLimit(uint newDailyLimit) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only the ein that owns this wallet can make withdrawals");
         require(pendingDailyLimit == 0, "A change daily limit request is already in progress");
-        require(timeOfLast2FA + 5 minutes < now);
         timeOfLast2FA = now;
         ChainlinkLib.Run memory run = newRun(LIMIT_JOB, address(this), this.fulfillChangeDailyLimit.selector);
         run.add("role", "client");
@@ -222,7 +221,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     function requestChainlinkRecover() public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(pendingRecovery == false, "Recovery request already in progress");
-        require(timeOfLast2FA + 5 minutes < now);
         timeOfLast2FA = now;
         ChainlinkLib.Run memory run = newRun(RECOVER_JOB, address(this), this.fulfillChainlinkRecover.selector);
         run.add("role", "client");
@@ -237,7 +235,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     function requestOneTimeWithdrawal(uint amount) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(oneTimeWithdrawalAmount == 0, "A withdrawal request is already in progress");
-        require(timeOfLast2FA + 5 minutes < now);
         timeOfLast2FA = now;
         oneTimeWithdrawalAmount = amount;
         ChainlinkLib.Run memory run = newRun(ONETIME_WITHDRAW_JOB, address(this), this.fulfillOneTimeWithdrawal.selector);
@@ -254,7 +251,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(oneTimeTransferExtAmount == 0, "A transfer request is already in progress");
         require(oneTimeTransferExtAddress == address(0), "Transfer address must be reset");
-        require(timeOfLast2FA + 5 minutes < now);
         timeOfLast2FA = now;
         oneTimeTransferExtAmount = amount;
         oneTimeTransferExtAddress = _to;
@@ -272,7 +268,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(oneTimeWithdrawalExtAmount == 0, "Withdrawal to external ein already initiated");
         require(oneTimeWithdrawalExtEin == 0, "Withdrawal to external ein already initiated");
-        require(timeOfLast2FA + 5 minutes < now);
         timeOfLast2FA = now;
         oneTimeWithdrawalExtAmount = amount;
         oneTimeWithdrawalExtEin = einTo;
@@ -355,10 +350,15 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         }
     }
 
-    function resetChainlinkState() public {
+    function requestResetChainlinkState() public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only the protected wallet associated ein can invoke this function");
-        //require(now > timeOfLast2FA + 1 hours, "Can only invoke this function at least one hour after the last chainlink request");
         
+    
+    }
+
+    function fulfillResetChainlinkState(bytes32 _requestId, bool _response)
+        public checkChainlinkFulfillment(_requestId) 
+    {
         pendingRecovery = false;
         pendingDailyLimit = 0;
         oneTimeWithdrawalAmount = 0;
