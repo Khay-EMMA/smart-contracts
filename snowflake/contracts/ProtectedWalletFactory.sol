@@ -40,7 +40,7 @@ contract ProtectedWalletFactory is SnowflakeResolver {
     mapping (uint => string) private  einToHydroId;
 
     uint signUpFee =          1 ether;
-    uint standardDailyLimit = 100 ether;
+    uint standardDailyLimit = 1000 ether;
     bytes32 defaultPass =     0xFFFFFFFFFFFFFFFFFFFFFFFFFFF0000000000000000000000000000000000000;
 
     modifier onlyWallet(uint ein) {

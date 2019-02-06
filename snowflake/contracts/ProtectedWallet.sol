@@ -164,41 +164,40 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         emit DepositFromSnowflake(idRegistry.getEIN(msg.sender), amount, msg.sender);
     }
 
-    function withdrawToAddress(uint amount) public  {
-        require(idRegistry.getEIN(msg.sender) == ein, "Only the ein that owns this wallet can make withdrawals");
+    function withdrawToAddress(uint amount, address addr) public  {
         require(amount <= dailyLimit, "Can only make withdrawals up to daily limit");
         if (now <= timestamp + 1 days) {
             hydroBalance = hydroBalance.sub(amount);
-            withdrawHydroBalanceTo(msg.sender, amount);
+            withdrawHydroBalanceTo(addr, amount);
             withdrawnToday = withdrawnToday.add(amount);
-            emit WithdrawToAddress(msg.sender, amount);
+            emit WithdrawToAddress(addr, amount);
         }
         else {
             timestamp = now;
             withdrawnToday = 0;
             hydroBalance = hydroBalance.sub(amount);
             withdrawnToday = withdrawnToday.add(amount);
-            withdrawHydroBalanceTo(msg.sender, amount);
-            emit WithdrawToAddress(msg.sender, amount);
+            withdrawHydroBalanceTo(addr, amount);
+            emit WithdrawToAddress(addr, amount);
         }
     }
 
-    function withdrawToSnowflake(uint amount) public {
+    function withdrawToSnowflake(uint amount, uint _einTo) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only the ein that owns this wallet can make withdrawals");
         require(amount <= dailyLimit, "Can only make withdrawals up to daily limit");
         if (now >= timestamp + 1 days) {
             hydroBalance = hydroBalance.sub(amount);
             withdrawnToday = withdrawnToday.add(amount);
-            transferHydroBalanceTo(ein, amount);
-            emit WithdrawToSnowflake(ein, amount);
+            transferHydroBalanceTo(_einTo, amount);
+            emit WithdrawToSnowflake(_einTo, amount);
         }
         else {
             timestamp = now;
             withdrawnToday = 0;
             hydroBalance = hydroBalance.sub(amount);
             withdrawnToday = withdrawnToday.add(amount);
-            transferHydroBalanceTo(ein, amount);
-            emit WithdrawToSnowflake(ein, amount);
+            transferHydroBalanceTo(_einTo, amount);
+            emit WithdrawToSnowflake(_einTo, amount);
         }
     }
 
