@@ -4,14 +4,13 @@ const ProtectedWallet = artifacts.require("./ProtectedWallet.sol")
 
 module.exports = async (deployer) => {
     
-    console.log("Hello")
-    /*let allowance = web3.utils.toBN(1e18)
+    let allowance = web3.utils.toBN(1e18)
     await deployer.deploy(FactoryContract, "0x47aC2F343926868e892Ba53a9D09e98bf6124460", "0x387Ce3020e13B0a334Bb3EB25DdCb73c133f1D7A")
     const snowflake = await SnowflakeContract.at("0x47aC2F343926868e892Ba53a9D09e98bf6124460")
     const factory = await FactoryContract.at(FactoryContract.address)
     console.log("Factory contract address: ", factory.address)
     console.log("\n Factory abi: ", factory.abi)
-    
+    /*
     await snowflake.addResolver(FactoryContract.address, true, allowance, "0x00").then(console.log("\n Deploying protected wallet..."))
     let protectedWalletAddr = await factory.getWalletByEIN(4)
     console.log("\n Protected wallet at: ", protectedWalletAddr, "\n")

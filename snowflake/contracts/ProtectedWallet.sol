@@ -65,11 +65,11 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     event WithdrawToAddress(address indexed _to, uint indexed _amount);
 
     // Chainlink job identifiers
-    bytes32 constant LIMIT_JOB =                bytes32("d53bdaec52e4436e9e730acf8b64703d");
+    bytes32 constant LIMIT_JOB =                bytes32("fa96020cf623433795a6e604f98c872b");
     bytes32 constant RECOVER_JOB =              bytes32("bd09b003710a494a855d233c30837345");
-    bytes32 constant ONETIME_WITHDRAW_JOB =     bytes32("7d01cb0e33044d3695d1734032d970e2");
-    bytes32 constant ONETIME_TRANSFEREXT_JOB =  bytes32("e24d7b3b279046a7b310579703918f58");
-    bytes32 constant ONETIME_WITHDRAWEXT_JOB =  bytes32("73ae93813c174b4a8db3068096f5d23a");
+    bytes32 constant ONETIME_WITHDRAW_JOB =     bytes32("f755d7c775724c40952a4ec935fd212d");
+    bytes32 constant ONETIME_TRANSFEREXT_JOB =  bytes32("0a338ccc3bd849dca91fbdc6d8097165");
+    bytes32 constant ONETIME_WITHDRAWEXT_JOB =  bytes32("912b9bbfd9e8492e804f8d78696f1002");
 
     constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, bytes32 passHash, address clientRaindropAddr) 
     public 
@@ -230,7 +230,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         chainlinkRequest(run, 1 ether);
     }
 
-    // Request to withdraw hydro above daily limit to snowflake
+  /*  // Request to withdraw hydro above daily limit to snowflake
     function requestOneTimeWithdrawal(uint amount) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(oneTimeWithdrawalAmount == 0, "A withdrawal request is already in progress");
@@ -244,7 +244,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         run.addUint("message", shortMessage);
         chainlinkRequest(run, 1 ether);
     }
-
+    */
     // Request to transfer hydro above daily limit to an external address
     function requestOneTimeTransferExternal(uint amount, address _to) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
@@ -263,7 +263,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     }
 
     // Request to withdraw hydro above daily limit to an external ein
-    function requestOneTimeWithdrawalExternal(uint amount, uint einTo) public {
+    function requestOneTimeWithdrawalExternal1(uint amount, uint einTo) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(oneTimeWithdrawalExtAmount == 0, "Withdrawal to external ein already initiated");
         require(oneTimeWithdrawalExtEin == 0, "Withdrawal to external ein already initiated");
@@ -305,7 +305,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
             return false;
         }
     }
-
+    /*
     function fulfillOneTimeWithdrawal(bytes32 _requestId, bool _response) 
         public checkChainlinkFulfillment(_requestId) returns (bool) 
     {
@@ -318,12 +318,13 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
             return false;
         }
     }
-
+    */
     function fulfillOneTimeTransferExternal(bytes32 _requestId, bool _response)
         public checkChainlinkFulfillment(_requestId) returns (bool)
     {
         if (_response == true) {
             withdrawHydroBalanceTo(oneTimeTransferExtAddress, oneTimeTransferExtAmount);
+            hydroBalance = hydroBalance.sub(oneTimeTransferExtAmount);
             oneTimeTransferExtAddress = address(0);
             oneTimeTransferExtAmount = 0;
             return true;
@@ -339,6 +340,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     {
         if (_response == true) {
             transferHydroBalanceTo(oneTimeWithdrawalExtEin, oneTimeWithdrawalExtAmount);
+            hydroBalance = hydroBalance.sub(oneTimeWithdrawalExtAmount);
             oneTimeWithdrawalExtEin = 0;
             oneTimeWithdrawalExtAmount = 0;
             return true;
