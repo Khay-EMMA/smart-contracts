@@ -263,7 +263,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     }
 
     // Request to withdraw hydro above daily limit to an external ein
-    function requestOneTimeWithdrawalExternal1(uint amount, uint einTo) public {
+    function requestOneTimeWithdrawalExternal(uint amount, uint einTo) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(oneTimeWithdrawalExtAmount == 0, "Withdrawal to external ein already initiated");
         require(oneTimeWithdrawalExtEin == 0, "Withdrawal to external ein already initiated");
