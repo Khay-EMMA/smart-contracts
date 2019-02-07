@@ -63,6 +63,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     event DepositFromAddress(uint indexed _amount, address indexed _from);
     event WithdrawToSnowflake(uint indexed _ein, uint indexed _amount);
     event WithdrawToAddress(address indexed _to, uint indexed _amount);
+    event RaindropMessage(uint indexed shortMessage);
 
     // Chainlink job identifiers
     bytes32 constant LIMIT_JOB =                bytes32("fa96020cf623433795a6e604f98c872b");
@@ -70,6 +71,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     bytes32 constant ONETIME_WITHDRAW_JOB =     bytes32("f755d7c775724c40952a4ec935fd212d");
     bytes32 constant ONETIME_TRANSFEREXT_JOB =  bytes32("0a338ccc3bd849dca91fbdc6d8097165");
     bytes32 constant ONETIME_WITHDRAWEXT_JOB =  bytes32("912b9bbfd9e8492e804f8d78696f1002");
+    bytes32 constant RESET_CHAINLINK_JOB =      bytes32("5ca9986bf0b1488aa29f78bf490aae99");
 
     constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, bytes32 passHash, address clientRaindropAddr) 
     public 
@@ -213,6 +215,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         uint shortMessage = longMessage % 1000000;
         run.addUint("message", shortMessage);
         chainlinkRequest(run, 1 ether);
+        emit RaindropMessage(shortMessage);
         pendingDailyLimit = newDailyLimit;
     }
 
@@ -227,6 +230,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         uint longMessage = uint(blockhash(block.number - 1));
         uint shortMessage = longMessage % 1000000;
         run.addUint("message", shortMessage);
+        emit RaindropMessage(shortMessage);
         chainlinkRequest(run, 1 ether);
     }
 
@@ -259,6 +263,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         uint longMessage = uint(blockhash(block.number - 1));
         uint shortMessage = longMessage % 1000000;
         run.addUint("message", shortMessage);
+        emit RaindropMessage(shortMessage);
         chainlinkRequest(run, 1 ether);
     }
 
@@ -276,6 +281,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         uint longMessage = uint(blockhash(block.number - 1));
         uint shortMessage = longMessage % 1000000;
         run.addUint("message", shortMessage);
+        emit RaindropMessage(shortMessage);
         chainlinkRequest(run, 1 ether);
     }
 
@@ -353,8 +359,14 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
 
     function requestResetChainlinkState() public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only the protected wallet associated ein can invoke this function");
-        
-    
+        ChainlinkLib.Run memory run = newRun(RESET_CHAINLINK_JOB, address(this), this.fulfillResetChainlinkState.selector);
+        run.add("role", "client");
+        run.add("hydroid", hydroId);
+        uint longMessage = uint(blockhash(block.number - 1));
+        uint shortMessage = longMessage % 1000000;
+        run.addUint("message", shortMessage);
+        emit RaindropMessage(shortMessage);
+        chainlinkRequest(run, 1 ether);
     }
 
     function fulfillResetChainlinkState(bytes32 _requestId, bool _response)
