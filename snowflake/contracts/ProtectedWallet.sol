@@ -4,25 +4,12 @@ import "./interfaces/ProtectedWalletFactoryInterface.sol";
 import "./interfaces/SnowflakeInterface.sol";
 import "./interfaces/ClientRaindropInterface.sol";
 import "./interfaces/IdentityRegistryInterface.sol";
+import "./Chainlink/interfaces/LinkTokenInterface.sol";
 import "./SnowflakeResolver.sol";
 import "./interfaces/HydroInterface.sol";
 import "./zeppelin/math/SafeMath.sol";
 import "./Chainlink/Chainlinked.sol";
 
-/**
- * Protected wallet Implementation
- * 1. Enable withdrawals up to a predetermined threshold specified in 
- * the contract constructor
- * 2. Enable withdrawals greater than predetermined threshold after
- * going through Chainlinked 2FA process with external -hydroId?- (non-associated)
- * address
- * 3. Enable one time password permissioned function that a. deposits
- * sends the remaining contract funds to the calling address and b. 
- * deletes the permissioned wallet and modifies factory contract state
- * accordingly.
- * 4. Allow for 2FA permissioned adjustments to daily limit (Standard
- * daily limit is 10 hydro tokens)
- */
 
 contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     using SafeMath for uint;
@@ -33,7 +20,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     address private hydroIdAddr;
     
     // Chainlink 2FA state variables
-    uint private    timeOfLast2FA;
     bool private    pendingRecovery;
     uint private    pendingDailyLimit;
     uint private    oneTimeWithdrawalAmount;
@@ -41,6 +27,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     address private oneTimeTransferExtAddress;
     uint private    oneTimeWithdrawalExtAmount;
     uint private    oneTimeWithdrawalExtEin;
+
 
     uint private    hydroBalance;
     bool private    hasPassword;
@@ -57,6 +44,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     ClientRaindropInterface         clientRaindrop;
     SnowflakeInterface              snowflake;
     HydroInterface                  hydro;
+    LinkTokenInterface              linkContract;
 
     event CommitHash(address indexed _from, bytes32 indexed _hash);
     event DepositFromSnowflake(uint indexed _ein, uint indexed _amount, address _from);
@@ -64,6 +52,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     event WithdrawToSnowflake(uint indexed _ein, uint indexed _amount);
     event WithdrawToAddress(address indexed _to, uint indexed _amount);
     event RaindropMessage(uint indexed shortMessage);
+    event ChainlinkCallback(bytes32 requestId);
 
     // Chainlink job identifiers
     bytes32 constant LIMIT_JOB =                bytes32("fa96020cf623433795a6e604f98c872b");
@@ -79,6 +68,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     {
         setLinkToken(0x01BE23585060835E02B77ef475b0Cc51aA1e0709);
         setOracle(0xA5e4D80F7FB2cd2dB23DB79A7337f223C67DaD22);
+        linkContract = LinkTokenInterface(0x01BE23585060835E02B77ef475b0Cc51aA1e0709);
         ein = _ein;
         dailyLimit = _dailyLimit;
         clientRaindrop = ClientRaindropInterface(clientRaindropAddr);
@@ -112,6 +102,10 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     // Getters
     function getDailyLimit() public view returns (uint) {
         return dailyLimit;
+    }
+
+    function getLinkBalance() public returns (uint) {
+        return linkContract.balanceOf(address(this));
     }
 
     function getHydroBalance() public view returns (uint) {
@@ -207,7 +201,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     function requestChangeDailyLimit(uint newDailyLimit) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only the ein that owns this wallet can make withdrawals");
         require(pendingDailyLimit == 0, "A change daily limit request is already in progress");
-        timeOfLast2FA = now;
         ChainlinkLib.Run memory run = newRun(LIMIT_JOB, address(this), this.fulfillChangeDailyLimit.selector);
         run.add("role", "client");
         run.add("hydroid", hydroId);
@@ -223,7 +216,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     function requestChainlinkRecover() public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(pendingRecovery == false, "Recovery request already in progress");
-        timeOfLast2FA = now;
         ChainlinkLib.Run memory run = newRun(RECOVER_JOB, address(this), this.fulfillChainlinkRecover.selector);
         run.add("role", "client");
         run.add("hydroid", hydroId);
@@ -234,27 +226,11 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         chainlinkRequest(run, 1 ether);
     }
 
-  /*  // Request to withdraw hydro above daily limit to snowflake
-    function requestOneTimeWithdrawal(uint amount) public {
-        require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
-        require(oneTimeWithdrawalAmount == 0, "A withdrawal request is already in progress");
-        timeOfLast2FA = now;
-        oneTimeWithdrawalAmount = amount;
-        ChainlinkLib.Run memory run = newRun(ONETIME_WITHDRAW_JOB, address(this), this.fulfillOneTimeWithdrawal.selector);
-        run.add("role", "client");
-        run.add("hydroid", hydroId);
-        uint longMessage = uint(blockhash(block.number - 1));
-        uint shortMessage = longMessage % 1000000;
-        run.addUint("message", shortMessage);
-        chainlinkRequest(run, 1 ether);
-    }
-    */
     // Request to transfer hydro above daily limit to an external address
     function requestOneTimeTransferExternal(uint amount, address _to) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(oneTimeTransferExtAmount == 0, "A transfer request is already in progress");
         require(oneTimeTransferExtAddress == address(0), "Transfer address must be reset");
-        timeOfLast2FA = now;
         oneTimeTransferExtAmount = amount;
         oneTimeTransferExtAddress = _to;
         ChainlinkLib.Run memory run = newRun(ONETIME_TRANSFEREXT_JOB, address(this), this.fulfillOneTimeTransferExternal.selector);
@@ -272,7 +248,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(oneTimeWithdrawalExtAmount == 0, "Withdrawal to external ein already initiated");
         require(oneTimeWithdrawalExtEin == 0, "Withdrawal to external ein already initiated");
-        timeOfLast2FA = now;
         oneTimeWithdrawalExtAmount = amount;
         oneTimeWithdrawalExtEin = einTo;
         ChainlinkLib.Run memory run = newRun(ONETIME_WITHDRAWEXT_JOB, address(this), this.fulfillOneTimeWithdrawalExternal.selector);
@@ -291,9 +266,11 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         if (_response == true) {
             dailyLimit = pendingDailyLimit;
             pendingDailyLimit = 0;
+            emit ChainlinkCallback(_requestId);
             return true;
         } else {
             pendingDailyLimit = 0;
+            emit ChainlinkCallback(_requestId);
             return false;
         }
     }
@@ -306,25 +283,14 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
             withdrawHydroBalanceTo(hydroIdAddr, amount);
             factoryContract.deleteWallet(ein);
             address payable hydroAddr = address(uint160(hydroIdAddr));
+            emit ChainlinkCallback(_requestId);
             selfdestruct(hydroAddr);
         } else {
+            emit ChainlinkCallback(_requestId);
             return false;
         }
     }
-    /*
-    function fulfillOneTimeWithdrawal(bytes32 _requestId, bool _response) 
-        public checkChainlinkFulfillment(_requestId) returns (bool) 
-    {
-        if (_response == true) {
-            transferHydroBalanceTo(ein, oneTimeWithdrawalAmount);
-            oneTimeWithdrawalAmount = 0;
-            return true;
-        } else {
-            oneTimeWithdrawalAmount = 0;
-            return false;
-        }
-    }
-    */
+
     function fulfillOneTimeTransferExternal(bytes32 _requestId, bool _response)
         public checkChainlinkFulfillment(_requestId) returns (bool)
     {
@@ -333,10 +299,12 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
             hydroBalance = hydroBalance.sub(oneTimeTransferExtAmount);
             oneTimeTransferExtAddress = address(0);
             oneTimeTransferExtAmount = 0;
+            emit ChainlinkCallback(_requestId);
             return true;
         } else {
             oneTimeTransferExtAddress = address(0);
             oneTimeTransferExtAmount = 0;
+            emit ChainlinkCallback(_requestId);
             return false;
         }
     }
@@ -349,10 +317,12 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
             hydroBalance = hydroBalance.sub(oneTimeWithdrawalExtAmount);
             oneTimeWithdrawalExtEin = 0;
             oneTimeWithdrawalExtAmount = 0;
+            emit ChainlinkCallback(_requestId);
             return true;
         } else {
             oneTimeWithdrawalExtEin = 0;
             oneTimeWithdrawalExtAmount = 0;
+            emit ChainlinkCallback(_requestId);
             return false;
         }
     }
@@ -379,6 +349,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         oneTimeTransferExtAddress = address(0);
         oneTimeWithdrawalExtAmount = 0;
         oneTimeWithdrawalExtEin = 0;
+        emit ChainlinkCallback(_requestId);
     }
 
     function() external payable {
