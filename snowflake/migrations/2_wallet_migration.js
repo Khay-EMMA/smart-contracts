@@ -1,16 +1,21 @@
-const FactoryContract = artifacts.require("./ProtectedWalletFactory.sol")
-const SnowflakeContract = artifacts.require("./Snowflake.sol")
-const ProtectedWallet = artifacts.require("./ProtectedWallet.sol")
+const FactoryContract = artifacts.require("./ProtectedWalletFactory.sol");
+const SnowflakeContract = artifacts.require("./Snowflake.sol");
+const ProtectedWallet = artifacts.require("./ProtectedWallet.sol");
 
-module.exports = async (deployer) => {
-    
-    let allowance = web3.utils.toBN(1e18)
-    await deployer.deploy(FactoryContract, "0x47aC2F343926868e892Ba53a9D09e98bf6124460", "0x387Ce3020e13B0a334Bb3EB25DdCb73c133f1D7A")
-    const snowflake = await SnowflakeContract.at("0x47aC2F343926868e892Ba53a9D09e98bf6124460")
-    const factory = await FactoryContract.at(FactoryContract.address)
-    console.log("Factory contract address: ", factory.address)
-    console.log("\n Factory abi: ", factory.abi)
-    /*
+module.exports = async deployer => {
+  let allowance = web3.utils.toBN(1e18);
+  await deployer.deploy(
+    FactoryContract,
+    "0xB0D5a36733886a4c5597849a05B315626aF5222E",
+    "0x387Ce3020e13B0a334Bb3EB25DdCb73c133f1D7A"
+  );
+  const snowflake = await SnowflakeContract.at(
+    "0x47aC2F343926868e892Ba53a9D09e98bf6124460"
+  );
+  const factory = await FactoryContract.at(FactoryContract.address);
+  console.log("Factory contract address: ", factory.address);
+  console.log("\n Factory abi: ", factory.abi);
+  /*
     await snowflake.addResolver(FactoryContract.address, true, allowance, "0x00").then(console.log("\n Deploying protected wallet..."))
     let protectedWalletAddr = await factory.getWalletByEIN(4)
     console.log("\n Protected wallet at: ", protectedWalletAddr, "\n")
@@ -28,4 +33,4 @@ module.exports = async (deployer) => {
     await wallet.resetChainlinkState()
     console.log(" Your wallet at address: ", wallet.address, " Write this address into chainlinktest.js")
     */
-}
+};

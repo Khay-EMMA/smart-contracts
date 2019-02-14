@@ -36,8 +36,9 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     uint private    timestamp;
     uint private    dailyLimit;
     
-    bytes32 private                   oneTimePass;
-    mapping (bytes32 => bool) private passHashCommit;
+    bytes32 private                      oneTimePass;
+    mapping (bytes32 => bool) private    passHashCommit;
+    mapping (address => bytes32) private commitHashFrom;
 
     ProtectedWalletFactoryInterface factoryContract;
     IdentityRegistryInterface       idRegistry;
@@ -131,6 +132,10 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     function getWithdrawnToday() public view returns (uint) {
         return withdrawnToday;
     }
+
+    function getCommitHash(address from) public view returns (bytes32) {
+        return commitHashFrom[from];
+    } 
 
     function getOneTimePassHash() public view returns (bytes32) {
         return oneTimePass;
@@ -358,7 +363,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
 
     function revealAndRecover(bytes32 _hash, address payable _dest, string memory password) public {
         require(passHashCommit[_hash] == true, "Must provide commit hash before reveal phase");
-        require(keccak256(abi.encodePacked(_dest, password)) == _hash, "Hashed input values not equal to commit hash");
+        require(keccak256(abi.encodePacked(address(uint160(_dest)), password)) == _hash, "Hashed input values not equal to commit hash");
         bytes32 passHash = keccak256(abi.encodePacked(password));
         require(keccak256(abi.encodePacked(address(this), passHash)) == oneTimePass, "Invalid password");
         withdrawHydroBalanceTo(_dest, hydroBalance);
@@ -367,8 +372,15 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     }
 
     function onAddition(uint ein, uint, bytes memory extraData) public senderIsSnowflake() returns (bool) {
+        if (extraData.length == 32) {
+        oneTimePass = keccak256(abi.encodePacked(address(this), extraData));
+        hasPassword = true;
         resolverAdded = true;
         return true;
+        } else {
+            resolverAdded = true;
+            return true;
+        }
     }
 
     function onRemoval(uint ein, bytes memory extraData) public senderIsSnowflake() returns (bool) {
@@ -377,6 +389,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
 
     function commitHash(bytes32 _hash) public walletHasPassword() {
         passHashCommit[_hash] = true;
+        commitHashFrom[msg.sender] = _hash;
         emit CommitHash(msg.sender, _hash);
     }
     
