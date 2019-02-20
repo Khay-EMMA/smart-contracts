@@ -56,12 +56,13 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     event ChainlinkCallback(bytes32 requestId);
 
     // Chainlink job identifiers
-    bytes32 constant LIMIT_JOB =                bytes32("fa96020cf623433795a6e604f98c872b");
-    bytes32 constant RECOVER_JOB =              bytes32("bd09b003710a494a855d233c30837345");
-    bytes32 constant ONETIME_WITHDRAW_JOB =     bytes32("f755d7c775724c40952a4ec935fd212d");
-    bytes32 constant ONETIME_TRANSFEREXT_JOB =  bytes32("0a338ccc3bd849dca91fbdc6d8097165");
-    bytes32 constant ONETIME_WITHDRAWEXT_JOB =  bytes32("912b9bbfd9e8492e804f8d78696f1002");
-    bytes32 constant RESET_CHAINLINK_JOB =      bytes32("5ca9986bf0b1488aa29f78bf490aae99");
+    bytes32 constant LIMIT_JOB =                bytes32("41fdc0d2dedc478fafbf32621e91b808");
+    bytes32 constant RECOVER_JOB =              bytes32("3f6612294e864539bf5cd40076dbc8c0");
+    bytes32 constant ONETIME_WITHDRAW_JOB =     bytes32("a5ae3eb68a994928aaf038ef058f29f6");
+    bytes32 constant ONETIME_TRANSFEREXT_JOB =  bytes32("fcef709e1f984673ad1ad32ec6a8cd2a");
+    bytes32 constant ONETIME_WITHDRAWEXT_JOB =  bytes32("674761dfb27549cfa5de22e5095b94c3");
+    bytes32 constant RESET_CHAINLINK_JOB =      bytes32("22761a53d9c1406ab2bf3c34daf6fca6");
+    bytes32 constant HYDRO_ID_JOB =             bytes32("c444deb002a945299e1979c9bf7293ef");
 
     constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, bytes32 passHash, address clientRaindropAddr) 
     public 
@@ -73,7 +74,8 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         ein = _ein;
         dailyLimit = _dailyLimit;
         clientRaindrop = ClientRaindropInterface(clientRaindropAddr);
-        (hydroIdAddr, hydroId) = clientRaindrop.getDetails(ein);
+        //(hydroIdAddr, hydroId) = clientRaindrop.getDetails(ein);
+        hydroId = "drlj97w";
         resolverAdded = false;
         timestamp = now;
         oneTimePass = keccak256(abi.encodePacked(address(this), passHash));
@@ -331,7 +333,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
             return false;
         }
     }
-
+/*/
     function requestResetChainlinkState() public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only the protected wallet associated ein can invoke this function");
         ChainlinkLib.Run memory run = newRun(RESET_CHAINLINK_JOB, address(this), this.fulfillResetChainlinkState.selector);
@@ -343,7 +345,8 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         emit RaindropMessage(shortMessage);
         chainlinkRequest(run, 1 ether);
     }
-
+*/
+/*
     function fulfillResetChainlinkState(bytes32 _requestId, bool _response)
         public checkChainlinkFulfillment(_requestId) 
     {
@@ -356,13 +359,8 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         oneTimeWithdrawalExtEin = 0;
         emit ChainlinkCallback(_requestId);
     }
-
-    function() external payable {
-        revert();
-    }
-
+*/
     function revealAndRecover(bytes32 _hash, address payable _dest, string memory password) public {
-        require(passHashCommit[_hash] == true, "Must provide commit hash before reveal phase");
         require(keccak256(abi.encodePacked(address(uint160(_dest)), password)) == _hash, "Hashed input values not equal to commit hash");
         bytes32 passHash = keccak256(abi.encodePacked(password));
         require(keccak256(abi.encodePacked(address(this), passHash)) == oneTimePass, "Invalid password");
@@ -372,15 +370,24 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     }
 
     function onAddition(uint ein, uint, bytes memory extraData) public senderIsSnowflake() returns (bool) {
-        if (extraData.length == 32) {
-        oneTimePass = keccak256(abi.encodePacked(address(this), extraData));
-        hasPassword = true;
+        ChainlinkLib.Run memory run = newRun(HYDRO_ID_JOB, address(this), this.fulfillOnAddition.selector);
+        run.add("role", "register");
+        run.add("hydroId", "drlj97w");
         resolverAdded = true;
-        return true;
-        } else {
+        chainlinkRequest(run, 1 ether);
+        if (extraData.length == 32) {
+            oneTimePass = keccak256(abi.encodePacked(address(this), extraData));
+            hasPassword = true;
             resolverAdded = true;
             return true;
+        } else {
+            return true;
         }
+    }
+
+    function fulfillOnAddition(bytes32 _requestId, bool _response) 
+        public checkChainlinkFulfillment(_requestId) returns (bool) {
+            return true;
     }
 
     function onRemoval(uint ein, bytes memory extraData) public senderIsSnowflake() returns (bool) {
