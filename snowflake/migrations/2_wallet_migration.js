@@ -1,6 +1,7 @@
 const FactoryContract = artifacts.require("./ProtectedWalletFactory.sol");
 const SnowflakeContract = artifacts.require("./Snowflake.sol");
 const ProtectedWallet = artifacts.require("./ProtectedWallet.sol");
+const UniswapVia = artifacts.require("./ProtectedWallet/uniswapVia.sol");
 
 module.exports = async deployer => {
   let allowance = web3.utils.toBN(1e18);
@@ -12,6 +13,15 @@ module.exports = async deployer => {
   const snowflake = await SnowflakeContract.at(
     "0x47aC2F343926868e892Ba53a9D09e98bf6124460"
   );
+  //@params uniswapVia contract, snowflake address,
+  await deployer.deploy(
+    UniswapVia,
+    "0xB0D5a36733886a4c5597849a05B315626aF5222E",
+    "0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36"
+  );
+
+  const uniVia = await UniswapVia.at(UniswapVia.address);
+  console.log("Uniswap via: ", UniswapVia.address);
   const factory = await FactoryContract.at(FactoryContract.address);
   console.log("Factory contract address: ", factory.address);
   console.log("\n Factory abi: ", factory.abi);

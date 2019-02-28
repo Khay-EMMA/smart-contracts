@@ -59,17 +59,9 @@ contract ProtectedWalletFactory is SnowflakeResolver {
         (address hydroAddr, string memory hydroId) = clientRaindrop.getDetails(ein);
         isHydroIdAddress[hydroAddr] = true;
         einToHydroId[ein] = hydroId;
-        if (extraData.length == 32) {
-            bytes32 passHash = bytesToBytes32(extraData);
-            address wallet = generateWalletPassword(ein, passHash);
-            einToWallet[ein] = wallet;
-            return true;
-        }
-        else {
-            address wallet = generateWalletPassword(ein, defaultPass);
-            einToWallet[ein] = wallet;
-            return true;
-        }
+        address wallet = createWallet(ein);
+        einToWallet[ein] = wallet;
+        return true;
     }
 
     function setClientRaindropAddress(address clientRaindropAddr) public onlyOwner() {
@@ -88,24 +80,16 @@ contract ProtectedWalletFactory is SnowflakeResolver {
     
     // For use after an ein has registered with this resolver, but has deleted
     // one or more wallets
-    function generateNewWallet(uint ein, bytes memory _passHash) public returns (address) {
+    function generateNewWallet(uint ein, bytes memory) public returns (address) {
         require(ein == idRegistry.getEIN(msg.sender), "Only an associated address can generate a new wallet");
         require(einHasDeleted[ein] == true, "Ein must have deleted the previous wallet");
-        if (_passHash.length == 32) {
-            bytes32 passHash = bytesToBytes32(_passHash);
-            address wallet = generateWalletPassword(ein, passHash);
-            einToWallet[ein] = wallet;
-            return wallet;
-        }
-        else {
-            address wallet = generateWalletPassword(ein, defaultPass);
-            einToWallet[ein] = wallet;
-            return wallet;
-        }
+        address wallet = createWallet(ein);
+        einToWallet[ein] = wallet;
+        return wallet;
     } 
 
-    function generateWalletPassword(uint ein, bytes32 passHash) internal returns (address) {
-        ProtectedWallet protectedWallet = new ProtectedWallet(ein, standardDailyLimit, snowflakeAddress, passHash, address(clientRaindrop));
+    function createWallet(uint ein) internal returns (address) {
+        ProtectedWallet protectedWallet = new ProtectedWallet(ein, standardDailyLimit, address(snowflake), address(clientRaindrop));
         return address(protectedWallet);
     }
 
@@ -126,16 +110,6 @@ contract ProtectedWalletFactory is SnowflakeResolver {
 
     function getSnowflakeAddress() public view returns (address) {
         return snowflakeAddress;
-    }
-
-    // Copied from stack exchange -- do not trust
-    function bytesToBytes32(bytes memory b) internal pure returns (bytes32) {
-        bytes32 out;
-
-        for (uint i = 0; i < 32; i++) {
-            out |= bytes32(b[0 + i] & 0xFF) >> (i * 8);
-        }
-        return out;
     }
 
 }
