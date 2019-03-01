@@ -59,10 +59,8 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     // Chainlink job identifiers
     bytes32 LIMIT_JOB =                bytes32("64cadbf89a15488e8587c7644c022b7c");
     bytes32 RECOVER_JOB =              bytes32("4cf557344a514905bfc84bb462f50db3");
-    bytes32 ONETIME_WITHDRAW_JOB =     bytes32("b49170b79b384bd7bb1866d70c010196");
     bytes32 ONETIME_TRANSFEREXT_JOB =  bytes32("3f11a1d9f5434579be2e98970518a92d");
     bytes32 ONETIME_WITHDRAWEXT_JOB =  bytes32("8a692b9b04564f10bfc19184c19e42ff");
-    bytes32 RESET_CHAINLINK_JOB =      bytes32("5cf7e424b2d847eb931db17209ba3880");
     bytes32 HYDRO_ID_JOB =             bytes32("032ce9cc59d448a3a0604b2f1902fbb7");
 
     constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, address clientRaindropAddr) 
@@ -141,15 +139,13 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         return hasPassword;
     }
 
-    function setJobIds(bytes16[7] memory ids) public {
+    function setJobIds(bytes16[5] memory ids) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only the ein that owns this wallet can make withdrawals");
         LIMIT_JOB               = bytes32(ids[0]);
         RECOVER_JOB             = bytes32(ids[1]);
-        ONETIME_WITHDRAW_JOB    = bytes32(ids[2]);
-        ONETIME_TRANSFEREXT_JOB = bytes32(ids[3]);
-        ONETIME_WITHDRAWEXT_JOB = bytes32(ids[4]);
-        RESET_CHAINLINK_JOB     = bytes32(ids[5]);
-        HYDRO_ID_JOB            = bytes32(ids[6]);
+        ONETIME_TRANSFEREXT_JOB = bytes32(ids[2]);
+        ONETIME_WITHDRAWEXT_JOB = bytes32(ids[3]);
+        HYDRO_ID_JOB            = bytes32(ids[4]);
     } 
 
     // Wallet Logic
@@ -209,11 +205,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         }
     }
 
-    function swapForLink(uint numHydro, uint minEthBought, uint deadline) internal {
-        bytes memory snowflakeCallBytes = abi.encode(address(linkContract), 1 ether, minEthBought, deadline);
-        withdrawHydroBalanceToVia(address(this), address(uniswapVia), numHydro, snowflakeCallBytes);
-    }
-
     // Request to adjust daily limit
     function requestChangeDailyLimit(uint newDailyLimit) public {
         require(idRegistry.getEIN(msg.sender) == ein, "Only the ein that owns this wallet can make withdrawals");
@@ -248,7 +239,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         require(idRegistry.getEIN(msg.sender) == ein, "Only addresses associated with this wallet ein can invoke this function");
         require(oneTimeTransferExtAmount == 0, "A transfer request is already in progress");
         require(oneTimeTransferExtAddress == address(0), "Transfer address must be reset");
-        swapForLink(numHydro, minEthBought, now + 100000);
         oneTimeTransferExtAmount = amount;
         oneTimeTransferExtAddress = _to;
         ChainlinkLib.Run memory run = newRun(ONETIME_TRANSFEREXT_JOB, address(this), this.fulfillOneTimeTransferExternal.selector);
