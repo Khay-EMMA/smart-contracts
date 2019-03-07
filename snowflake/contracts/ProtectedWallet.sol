@@ -9,7 +9,7 @@ import "./SnowflakeResolver.sol";
 import "./interfaces/HydroInterface.sol";
 import "./zeppelin/math/SafeMath.sol";
 import "./Chainlink/Chainlinked.sol";
-import "./interfaces/SnowflakeViaInterface.sol";
+//import "./interfaces/SnowflakeViaInterface.sol";
 
 
 contract ProtectedWallet is SnowflakeResolver, Chainlinked {
@@ -46,7 +46,7 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     SnowflakeInterface              snowflake;
     HydroInterface                  hydro;
     LinkTokenInterface              linkContract;
-    SnowflakeViaInterface           uniswapVia;
+    //SnowflakeViaInterface           uniswapVia;
 
     event CommitHash(address indexed _from, bytes32 indexed _hash);
     event DepositFromSnowflake(uint indexed _ein, uint indexed _amount, address _from);
@@ -57,11 +57,11 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     event ChainlinkCallback(bytes32 indexed requestId);
 
     // Chainlink job identifiers
-    bytes32 LIMIT_JOB =                bytes32("64cadbf89a15488e8587c7644c022b7c");
-    bytes32 RECOVER_JOB =              bytes32("4cf557344a514905bfc84bb462f50db3");
-    bytes32 ONETIME_TRANSFEREXT_JOB =  bytes32("3f11a1d9f5434579be2e98970518a92d");
-    bytes32 ONETIME_WITHDRAWEXT_JOB =  bytes32("8a692b9b04564f10bfc19184c19e42ff");
-    bytes32 HYDRO_ID_JOB =             bytes32("032ce9cc59d448a3a0604b2f1902fbb7");
+    bytes32 LIMIT_JOB =                bytes32("f26b8184a106449c9a81ccdae1ef0b5c");
+    bytes32 RECOVER_JOB =              bytes32("f26b8184a106449c9a81ccdae1ef0b5c");
+    bytes32 ONETIME_TRANSFEREXT_JOB =  bytes32("f26b8184a106449c9a81ccdae1ef0b5c");
+    bytes32 ONETIME_WITHDRAWEXT_JOB =  bytes32("f26b8184a106449c9a81ccdae1ef0b5c");
+    bytes32 HYDRO_ID_JOB =             bytes32("bb00038cd23643eba3008d850b5ca8ba");
 
     constructor(uint _ein, uint _dailyLimit, address snowflakeAddress, address clientRaindropAddr) 
     public 
@@ -70,7 +70,6 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         setLinkToken(0x01BE23585060835E02B77ef475b0Cc51aA1e0709);
         setOracle(0xA5e4D80F7FB2cd2dB23DB79A7337f223C67DaD22);
         linkContract = LinkTokenInterface(0x01BE23585060835E02B77ef475b0Cc51aA1e0709);
-        uniswapVia = SnowflakeViaInterface(0xc782Baf0c363951A8695ac48370bd2dAE54c824B);
         ein = _ein;
         dailyLimit = _dailyLimit;
         clientRaindrop = ClientRaindropInterface(clientRaindropAddr);
@@ -95,42 +94,47 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
     }
 
     // Getters
+    //Returns the contract daily withdrawal limit
     function getDailyLimit() public view returns (uint) {
         return dailyLimit;
     }
 
+    // Returns the current balance in link tokens
     function getLinkBalance() public returns (uint) {
         return linkContract.balanceOf(address(this));
     }
 
-    function getHydroBalance() public view returns (uint) {
-        return hydroBalance;
-    }
-
+    // Returns whether or not a password recovery commit has been pushed
     function checkIfCommitExists(bytes32 commit) public view returns (bool) {
         return passHashCommit[commit];
     }
 
+    // Returns the EIN associated with this contract
     function getEIN() public view returns (uint) {
         return ein;
     }
 
+    // Returns the hydroId used for chainlinked 2FA and recovery
     function getHydroId() public view returns (string memory) {
         return hydroId;
     }
 
+    // Returns the current balance of the contract in hydro tokens
     function getBalance() public view returns (uint) {
         return hydro.balances(address(this));
     }
 
+    // Returns the amount of tokens withdrawn within the last 24 hour period
     function getWithdrawnToday() public view returns (uint) {
         return withdrawnToday;
     }
 
+    // Returns the commit hash
     function getCommitHash(address from) public view returns (bytes32) {
         return commitHashFrom[from];
     } 
 
+    // 
     function getOneTimePassHash() public view returns (bytes32) {
         return oneTimePass;
     }
@@ -334,23 +338,9 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
             return false;
         }
     }
-/*/
-    function requestResetChainlinkState() public {
-        require(idRegistry.getEIN(msg.sender) == ein, "Only the protected wallet associated ein can invoke this function");
-        ChainlinkLib.Run memory run = newRun(RESET_CHAINLINK_JOB, address(this), this.fulfillResetChainlinkState.selector);
-        run.add("role", "client");
-        run.add("hydroid", hydroId);
-        uint longMessage = uint(blockhash(block.number - 1));
-        uint shortMessage = longMessage % 1000000;
-        run.addUint("message", shortMessage);
-        emit RaindropMessage(shortMessage);
-        chainlinkRequest(run, 1 ether);
-    }
-*/
-/*
-    function fulfillResetChainlinkState(bytes32 _requestId, bool _response)
-        public checkChainlinkFulfillment(_requestId) 
-    {
+
+
+    function resetChainlinkState() public returns (bool) {
         pendingRecovery = false;
         pendingDailyLimit = 0;
         oneTimeWithdrawalAmount = 0;
@@ -358,9 +348,8 @@ contract ProtectedWallet is SnowflakeResolver, Chainlinked {
         oneTimeTransferExtAddress = address(0);
         oneTimeWithdrawalExtAmount = 0;
         oneTimeWithdrawalExtEin = 0;
-        emit ChainlinkCallback(_requestId);
     }
-*/
+
     function revealAndRecover(bytes32 _hash, address payable _dest, string memory password) public {
         require(keccak256(abi.encodePacked(address(uint160(_dest)), password)) == _hash, "Hashed input values not equal to commit hash");
         bytes32 passHash = keccak256(abi.encodePacked(password));

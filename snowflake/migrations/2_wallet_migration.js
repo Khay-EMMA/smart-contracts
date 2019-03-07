@@ -24,7 +24,6 @@ module.exports = async deployer => {
   console.log("Uniswap via: ", UniswapVia.address);
   const factory = await FactoryContract.at(FactoryContract.address);
   console.log("Factory contract address: ", factory.address);
-  console.log("\n Factory abi: ", factory.abi);
   /*
     await snowflake.addResolver(FactoryContract.address, true, allowance, "0x00").then(console.log("\n Deploying protected wallet..."))
     let protectedWalletAddr = await factory.getWalletByEIN(4)
