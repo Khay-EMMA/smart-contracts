@@ -3,7 +3,7 @@ const SnowflakeContract = artifacts.require("./Snowflake.sol");
 const ProtectedWallet = artifacts.require("./ProtectedWallet.sol");
 const UniswapVia = artifacts.require("./ProtectedWallet/uniswapVia.sol");
 
-module.exports = async deployer => {
+module.exports = async (deployer) => {
   let allowance = web3.utils.toBN(1e18);
   await deployer.deploy(
     FactoryContract,

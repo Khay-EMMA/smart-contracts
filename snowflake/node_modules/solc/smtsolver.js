@@ -1,16 +1,18 @@
 var commandExistsSync = require('command-exists').sync;
 var execSync = require('child_process').execSync;
-var fs = require('fs-extra');
+var fs = require('fs');
 var tmp = require('tmp');
+
+const timeout = 10000;
 
 var potentialSolvers = [
   {
     name: 'z3',
-    params: '-smt2'
+    params: '-smt2 -t:' + timeout
   },
   {
     name: 'cvc4',
-    params: '--lang=smt2'
+    params: '--lang=smt2 --tlimit=' + timeout
   }
 ];
 var solvers = potentialSolvers.filter(solver => commandExistsSync(solver.name));
@@ -44,7 +46,7 @@ function solve (query) {
       !solverOutput.startsWith('unsat') &&
       !solverOutput.startsWith('unknown')
     ) {
-      throw new Error('Failed solve SMT query. ' + e.toString());
+      throw new Error('Failed to solve SMT query. ' + e.toString());
     }
   }
   // Trigger early manual cleanup
@@ -53,5 +55,6 @@ function solve (query) {
 }
 
 module.exports = {
-  smtSolver: solve
+  smtSolver: solve,
+  availableSolvers: solvers.length
 };

@@ -310,9 +310,7 @@ contract Snowflake is Ownable {
     // common logic to remove resolvers
     function removeResolver(uint ein, address resolver, bool isSnowflake, bytes memory extraData) private {
         require(identityRegistry.isResolverFor(ein, resolver), "Identity has not yet set this resolver.");
-    
         delete resolverAllowances[ein][resolver];
-    
         if (isSnowflake) {
             SnowflakeResolverInterface snowflakeResolver = SnowflakeResolverInterface(resolver);
             if (snowflakeResolver.callOnRemoval())
@@ -374,7 +372,6 @@ contract Snowflake is Ownable {
             (
                 bool isTransfer, address resolver, address via, uint to, bytes memory snowflakeCallBytes
             ) = abi.decode(_bytes, (bool, address, address, uint, bytes));
-            
             require(hydroToken.transferFrom(sender, via, amount), "Unable to transfer token ownership.");
 
             SnowflakeViaInterface viaContract = SnowflakeViaInterface(via);
